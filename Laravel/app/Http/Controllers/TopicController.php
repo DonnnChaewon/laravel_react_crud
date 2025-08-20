@@ -18,16 +18,18 @@ class TopicController extends Controller {
 
     public function store(TopicStoreRequest $request) {
         try {
+            $data = $request->validated();
+            $imageFile = $request->file('image');
             $imageName = Str::random(32).".".$request->file('image')->getClientOriginalExtension();
             
             Topic::create([
-                'title' => $request->title,
-                'description' => $request->description,
+                'title' => $data['title'],
+                'description' => $data['description'],
                 'image' => $imageName
             ]);
 
             // Save image in storage folder
-            Storage::disk('public')->put($imageName, file_get_contents($request->image));
+            Storage::disk('public')->put($imageName, file_get_contents($imageFile));
 
             return response()->json([
                 'message' => 'Success to create topic!'
@@ -54,6 +56,7 @@ class TopicController extends Controller {
 
     public function update(TopicStoreRequest $request, $id) {
         try {
+            $data = $request->validated();
             $topic = Topic::find($id);
             if(!$topic) {
                 return response()->json([
@@ -61,10 +64,10 @@ class TopicController extends Controller {
                 ], 404);
             }
 
-            $topic->title = $request->title;
-            $topic->description = $request->description;
+            $topic->title = $data['title'];
+            $topic->description = $data['description'];
 
-            if($request->image) {
+            if($request->hasFile('image')) {
                 // Public storage
                 $storage = Storage::disk('public');
 
@@ -72,11 +75,12 @@ class TopicController extends Controller {
                 if($storage->exists($topic->image)) $storage->delete($topic->image);
 
                 // Image name
+                $imageFile = $request->file('image');
                 $imageName = Str::random(32).".".$request->file('image')->getClientOriginalExtension();
                 $topic->image = $imageName;
 
                 // Save image in public folder
-                $storage->put($imageName, file_get_contents($request->image));
+                $storage->put($imageName, file_get_contents($imageFile));
             }
 
             $topic->save();
